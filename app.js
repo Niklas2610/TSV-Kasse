@@ -5,6 +5,8 @@ let currentView = localStorage.getItem('view') || 'edit';
 
 const app = document.getElementById('app');
 
+const categories = ['Essen', 'Trinken', 'Pfand'];
+
 function saveState() {
   localStorage.setItem('products', JSON.stringify(products));
   localStorage.setItem('counts', JSON.stringify(counts));
@@ -40,13 +42,26 @@ function renderEdit() {
       saveState();
     };
 
-    app.append(nameInput, priceInput);
+    const categorySelect = document.createElement('select');
+    categories.forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = cat;
+      opt.textContent = cat;
+      if (prod.category === cat) opt.selected = true;
+      categorySelect.append(opt);
+    });
+    categorySelect.onchange = () => {
+      products[i].category = categorySelect.value;
+      saveState();
+    };
+
+    app.append(nameInput, priceInput, categorySelect);
   });
 
   const addBtn = document.createElement('button');
   addBtn.textContent = '+ Produkt hinzufügen';
   addBtn.onclick = () => {
-    products.push({ name: '', price: 0 });
+    products.push({ name: '', price: 0, category: 'Essen' });
     saveState();
     renderEdit();
   };
@@ -83,25 +98,35 @@ function renderOrder() {
   topBar.append(title, total);
   app.append(topBar);
 
-  const grid = document.createElement('div');
-  grid.className = 'tile-grid';
+  categories.forEach(cat => {
+    const catTitle = document.createElement('h3');
+    catTitle.textContent = cat;
+    app.append(catTitle);
 
-  products.forEach((prod, i) => {
-    const box = document.createElement('div');
-    box.className = 'tile';
-    box.onclick = () => {
-      counts[i] = (counts[i] || 0) + 1;
-      saveState();
-      renderOrder();
-    };
+    const grid = document.createElement('div');
+    grid.className = 'tile-grid';
 
-    box.innerHTML = `
-      <strong>${prod.name}</strong><br>
-      ${prod.price} €<br>
-      Ausgewählt: ${counts[i] || 0}
-    `;
+    products.forEach((prod, i) => {
+      if (prod.category !== cat) return;
 
-    grid.append(box);
+      const box = document.createElement('div');
+      box.className = 'tile';
+      box.onclick = () => {
+        counts[i] = (counts[i] || 0) + 1;
+        saveState();
+        renderOrder();
+      };
+
+      box.innerHTML = `
+        <strong>${prod.name}</strong><br>
+        ${prod.price} €<br>
+        Ausgewählt: ${counts[i] || 0}
+      `;
+
+      grid.append(box);
+    });
+
+    app.append(grid);
   });
 
   const editBtn = document.createElement('button');
@@ -112,7 +137,7 @@ function renderOrder() {
   resetBtn.textContent = 'Neue Bestellung';
   resetBtn.onclick = resetOrder;
 
-  app.append(grid, editBtn, resetBtn);
+  app.append(editBtn, resetBtn);
 }
 
 function calcTotal() {
