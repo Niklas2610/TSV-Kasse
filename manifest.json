@@ -1,0 +1,17 @@
+
+{
+  "name": "TSV-Kasse",
+  "short_name": "TSV-Kasse",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#121212",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "tsv-icon.png",
+      "type": "image/png",
+      "sizes": "180x180"
+    }
+  ]
+}
