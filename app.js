@@ -55,7 +55,15 @@ function renderEdit() {
       saveState();
     };
 
-    app.append(nameInput, priceInput, categorySelect);
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = '🗑️ Löschen';
+    deleteBtn.onclick = () => {
+      products.splice(i, 1);
+      saveState();
+      renderEdit();
+    };
+
+    app.append(nameInput, priceInput, categorySelect, deleteBtn);
   });
 
   const addBtn = document.createElement('button');
@@ -111,6 +119,11 @@ function renderOrder() {
 
       const box = document.createElement('div');
       box.className = 'tile';
+      if (prod.category === 'Essen') box.style.backgroundColor = '#2e7d32';
+      else if (prod.category === 'Trinken') box.style.backgroundColor = '#f5f5f5';
+      else box.style.backgroundColor = '#1e1e1e';
+
+      box.style.color = prod.category === 'Trinken' ? '#000' : '#fff';
       box.onclick = () => {
         counts[i] = (counts[i] || 0) + 1;
         saveState();
@@ -129,15 +142,15 @@ function renderOrder() {
     app.append(grid);
   });
 
-  const editBtn = document.createElement('button');
-  editBtn.textContent = 'Bearbeiten';
-  editBtn.onclick = renderEdit;
-
   const resetBtn = document.createElement('button');
   resetBtn.textContent = 'Neue Bestellung';
   resetBtn.onclick = resetOrder;
 
-  app.append(editBtn, resetBtn);
+  const editBtn = document.createElement('button');
+  editBtn.textContent = 'Bearbeiten';
+  editBtn.onclick = renderEdit;
+
+  app.append(resetBtn, editBtn);
 }
 
 function calcTotal() {
