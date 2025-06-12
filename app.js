@@ -56,7 +56,7 @@ function renderEdit() {
     };
 
     const deleteBtn = document.createElement('button');
-    deleteBtn.textContent = '🗑️ Löschen';
+    deleteBtn.textContent = '🗑️ Löschen'; deleteBtn.style.backgroundColor = '#b00020'; deleteBtn.style.color = '#fff';
     deleteBtn.onclick = () => {
       products.splice(i, 1);
       saveState();
@@ -143,7 +143,7 @@ function renderOrder() {
   });
 
   const resetBtn = document.createElement('button');
-  resetBtn.textContent = 'Neue Bestellung';
+  resetBtn.textContent = 'Neue Bestellung'; resetBtn.style.backgroundColor = '#b00020'; resetBtn.style.color = '#fff';
   resetBtn.onclick = resetOrder;
 
   const editBtn = document.createElement('button');
