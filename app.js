@@ -1,7 +1,7 @@
-
 let products = JSON.parse(localStorage.getItem('products')) || [];
 let counts = JSON.parse(localStorage.getItem('counts')) || {};
 let currentView = localStorage.getItem('view') || 'edit';
+let receivedAmount = '';
 
 const app = document.getElementById('app');
 
@@ -15,8 +15,19 @@ function saveState() {
 
 function resetOrder() {
   counts = {};
+  receivedAmount = '';
   saveState();
   renderOrder();
+}
+
+function getTotalValue() {
+  return products.reduce((sum, p, i) => {
+    return sum + (counts[i] || 0) * p.price;
+  }, 0);
+}
+
+function formatMoney(value) {
+  return value.toFixed(2).replace('.', ',') + ' €';
 }
 
 function renderEdit() {
@@ -35,6 +46,7 @@ function renderEdit() {
 
     const priceInput = document.createElement('input');
     priceInput.type = 'number';
+    priceInput.step = '0.01';
     priceInput.value = prod.price;
     priceInput.placeholder = 'Preis';
     priceInput.oninput = () => {
@@ -59,6 +71,7 @@ function renderEdit() {
     deleteBtn.textContent = '🗑️ Löschen'; deleteBtn.style.backgroundColor = '#b00020'; deleteBtn.style.color = '#fff';
     deleteBtn.onclick = () => {
       products.splice(i, 1);
+      delete counts[i];
       saveState();
       renderEdit();
     };
@@ -87,24 +100,26 @@ function renderEdit() {
   app.append(addBtn, finishBtn, document.createElement('hr'), copyright);
 }
 
+function createTopBar() {
+  const topBar = document.createElement('div');
+  topBar.className = 'top-bar';
+
+  const title = document.createElement('h2');
+  title.textContent = currentView === 'checkout' ? 'Bezahlung' : 'Bestellung';
+
+  const total = document.createElement('h2');
+  total.className = 'total-display';
+  total.textContent = 'Gesamt: ' + calcTotal();
+
+  topBar.append(title, total);
+  return topBar;
+}
+
 function renderOrder() {
   currentView = 'order';
   saveState();
   app.innerHTML = '';
-
-  const topBar = document.createElement('div');
-  topBar.style.display = 'flex';
-  topBar.style.justifyContent = 'space-between';
-  topBar.style.alignItems = 'center';
-
-  const title = document.createElement('h2');
-  title.textContent = 'Bestellung';
-
-  const total = document.createElement('h2');
-  total.textContent = 'Ergebnis: ' + calcTotal();
-
-  topBar.append(title, total);
-  app.append(topBar);
+  app.append(createTopBar());
 
   categories.forEach(cat => {
     const catTitle = document.createElement('h3');
@@ -132,7 +147,7 @@ function renderOrder() {
 
       box.innerHTML = `
         <strong>${prod.name}</strong><br>
-        ${prod.price} €<br>
+        ${formatMoney(prod.price)}<br>
         Ausgewählt: ${counts[i] || 0}
       `;
 
@@ -142,6 +157,11 @@ function renderOrder() {
     app.append(grid);
   });
 
+  const doneBtn = document.createElement('button');
+  doneBtn.textContent = 'Fertig / Bezahlen';
+  doneBtn.className = 'primary-button';
+  doneBtn.onclick = renderCheckout;
+
   const resetBtn = document.createElement('button');
   resetBtn.textContent = 'Neue Bestellung'; resetBtn.style.backgroundColor = '#b00020'; resetBtn.style.color = '#fff';
   resetBtn.onclick = resetOrder;
@@ -150,13 +170,82 @@ function renderOrder() {
   editBtn.textContent = 'Bearbeiten';
   editBtn.onclick = renderEdit;
 
-  app.append(resetBtn, editBtn);
+  app.append(doneBtn, resetBtn, editBtn);
+}
+
+function renderCheckout() {
+  currentView = 'checkout';
+  saveState();
+  app.innerHTML = '';
+  app.append(createTopBar());
+
+  const totalValue = getTotalValue();
+
+  const checkoutBox = document.createElement('div');
+  checkoutBox.className = 'checkout-box';
+
+  const label = document.createElement('label');
+  label.textContent = 'Gegebenen Betrag eingeben:';
+  label.htmlFor = 'received-amount';
+
+  const receivedInput = document.createElement('input');
+  receivedInput.id = 'received-amount';
+  receivedInput.type = 'number';
+  receivedInput.step = '0.01';
+  receivedInput.min = '0';
+  receivedInput.inputMode = 'decimal';
+  receivedInput.placeholder = 'z. B. 20,00';
+  receivedInput.value = receivedAmount;
+
+  const changeText = document.createElement('div');
+  changeText.className = 'change-display';
+
+  function updateChange() {
+    receivedAmount = receivedInput.value;
+    const received = parseFloat(receivedInput.value.replace(',', '.'));
+
+    if (receivedInput.value === '') {
+      changeText.textContent = 'Passend bekommen? Dann einfach unten „Neue Bestellung“ drücken.';
+      changeText.className = 'change-display muted';
+      return;
+    }
+
+    if (Number.isNaN(received)) {
+      changeText.textContent = 'Bitte einen gültigen Betrag eingeben.';
+      changeText.className = 'change-display warning';
+      return;
+    }
+
+    const change = received - totalValue;
+    if (change < 0) {
+      changeText.textContent = 'Es fehlen noch: ' + formatMoney(Math.abs(change));
+      changeText.className = 'change-display warning';
+    } else {
+      changeText.textContent = 'Wechselgeld: ' + formatMoney(change);
+      changeText.className = 'change-display success';
+    }
+  }
+
+  receivedInput.oninput = updateChange;
+  updateChange();
+
+  const newOrderBtn = document.createElement('button');
+  newOrderBtn.textContent = 'Neue Bestellung';
+  newOrderBtn.className = 'primary-button';
+  newOrderBtn.onclick = resetOrder;
+
+  const backBtn = document.createElement('button');
+  backBtn.textContent = 'Zurück zur Bestellung';
+  backBtn.onclick = renderOrder;
+
+  checkoutBox.append(label, receivedInput, changeText, newOrderBtn, backBtn);
+  app.append(checkoutBox);
 }
 
 function calcTotal() {
-  return products.reduce((sum, p, i) => {
-    return sum + (counts[i] || 0) * p.price;
-  }, 0).toFixed(2) + ' €';
+  return formatMoney(getTotalValue());
 }
 
-currentView === 'edit' ? renderEdit() : renderOrder();
+if (currentView === 'edit') renderEdit();
+else if (currentView === 'checkout') renderCheckout();
+else renderOrder();
